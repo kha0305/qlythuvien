@@ -133,10 +133,17 @@ export function Layout() {
               <span className="bell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
             )}
           </button>
-          <Avatar user={user} size={34} />
-          <span className="topbar-name" title={user.username}>
-            {user.fullName}{showRole && <em> ({ROLE_LABEL[user.role]})</em>}
-          </span>
+          <Link
+            to="/profile"
+            className="topbar-user-link"
+            title="Thông tin cá nhân"
+            aria-label="Thông tin cá nhân"
+          >
+            <Avatar user={user} size={34} />
+            <span className="topbar-name" title={user.username}>
+              {user.fullName}{showRole && <em> ({ROLE_LABEL[user.role]})</em>}
+            </span>
+          </Link>
           <button type="button" className="btn btn-ghost btn-sm" onClick={handleLogout}>
             <Icon name="logout" size={16} />
             Đăng xuất
