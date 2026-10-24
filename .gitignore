@@ -1,0 +1,11 @@
+# Không bao giờ commit: file môi trường thật, thư mục cài đặt, bản build, ảnh upload.
+.env
+node_modules/
+dist/
+uploads/
+*.log
+.DS_Store
+# File .js biên dịch kèm trong src/ (nguồn thật là .ts, build ra dist/).
+backend/src/**/*.js
+backend/scripts/*.js
+backend/tsconfig.tsbuildinfo
