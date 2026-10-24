@@ -95,7 +95,11 @@ export class BookController {
   // GET /api/books/:id
   getById = async (req: Request, res: Response): Promise<void> => {
     const book = await this.bookService.findById(Number(req.params.id));
-    res.json({ data: (await this.withReservationFlag([book]))[0] });
+    const dto = (await this.withReservationFlag([book]))[0];
+    // Các cuốn cùng đầu sách: bỏ qrCode để độc giả không thấy mã QR của bản khác.
+    const flaggedCopies = await this.withReservationFlag(await this.bookService.listCopies(book.title, book.author ?? null));
+    const copies = flaggedCopies.map(({ qrCode: _qr, ...rest }) => rest);
+    res.json({ data: { ...dto, copies } });
   };
 
   // POST /api/books {title, ..., quantity?} — tạo N bản copy cùng lúc, mỗi bản 1 mã riêng.
@@ -183,6 +187,7 @@ export class BookController {
       coverFound: r.status === 'ok',
       source: r.source,
       message: r.message,
+      sharedCount: r.sharedCount,
     });
   };
 

@@ -49,8 +49,8 @@ export class ReminderService {
       const isOverdue = plan.type === 'overdue';
       const fine = plan.overdueDays * settings.finePerDay;
       const subject = isOverdue
-        ? `[Thư viện Mini] Sách "${loan.book.title}" đã quá hạn ${plan.overdueDays} ngày`
-        : `[Thư viện Mini] Sách "${loan.book.title}" sắp đến hạn trả (${dueText})`;
+        ? `[Thư viện Đại học] Sách "${loan.book.title}" đã quá hạn ${plan.overdueDays} ngày`
+        : `[Thư viện Đại học] Sách "${loan.book.title}" sắp đến hạn trả (${dueText})`;
       const paragraphs = isOverdue
         ? [
             `Xin chào ${loan.reader.fullName},`,
@@ -79,7 +79,7 @@ export class ReminderService {
           to: loan.reader.email,
           subject,
           text,
-          html: wrapEmailHtml(subject.replace('[Thư viện Mini] ', ''), paragraphs, `${config.mail.appBaseUrl}/my-books`, 'Xem sách đang mượn', infoRows),
+          html: wrapEmailHtml(subject.replace('[Thư viện Đại học] ', ''), paragraphs, `${config.mail.appBaseUrl}/my-books`, 'Xem sách đang mượn', infoRows),
         });
         await this.reminderRepo.record(loan.id, plan.type, loan.reader.email, providerId);
         sent++;

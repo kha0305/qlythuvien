@@ -14,7 +14,7 @@ export function BookDetail() {
   const [book, setBook] = useState<Book | null>(null);
 
   useEffect(() => {
-    if (book) document.title = `${book.title} - Thư Viện Mini`;
+    if (book) document.title = `${book.title} - Thư viện Đại học`;
   }, [book]);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -46,13 +46,13 @@ export function BookDetail() {
     };
   }, [id]);
 
-  const handleReserve = async () => {
+  const handleReserve = async (bookId?: number) => {
     if (!book) return;
     setReserving(true);
     setError('');
     setNotice('');
     try {
-      await reserveBook(book.id, readerNote.trim() || undefined);
+      await reserveBook(bookId ?? book.id, readerNote.trim() || undefined);
       const b = await getBook(book.id);
       setBook(b);
       setReaderNote('');
@@ -117,7 +117,7 @@ export function BookDetail() {
                 />
               </label>
               <div className="btn-row">
-                <button type="button" className="btn btn-primary btn-lg" disabled={reserving} onClick={handleReserve}>
+                <button type="button" className="btn btn-primary btn-lg" disabled={reserving} onClick={() => handleReserve()}>
                   {reserving ? 'Đang đặt...' : 'Đặt trước cuốn này'}
                 </button>
               </div>
@@ -125,6 +125,43 @@ export function BookDetail() {
           )}
           {(book.status !== 'available' || book.hasActiveReservation) && !notice && (
             <p className="muted">Sách hiện không khả dụng để đặt trước.</p>
+          )}
+
+          {book.copies && book.copies.length > 1 && (
+            <div style={{ marginTop: 20 }}>
+              <h3>Các cuốn cùng đầu sách</h3>
+              <dl className="kv">
+                {book.copies.map((c) => (
+                  <div key={c.id}>
+                    <dt>{c.bookCode || `Bản #${c.id}`}</dt>
+                    <dd>
+                      {c.status === 'borrowed' ? (
+                        <span className="badge badge-gray">Đang mượn</span>
+                      ) : c.hasActiveReservation ? (
+                        <span className="badge badge-orange">Đã có người đặt</span>
+                      ) : (
+                        <span className="badge badge-green">Còn</span>
+                      )}
+                      {' '}
+                      {c.id === book.id ? (
+                        <span className="muted">(đang xem)</span>
+                      ) : c.status === 'available' && !c.hasActiveReservation ? (
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          disabled={reserving}
+                          onClick={() => handleReserve(c.id)}
+                        >
+                          Đặt trước bản này
+                        </button>
+                      ) : (
+                        <Link to={`/reader/books/${c.id}`} className="link">Xem bản này</Link>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
           )}
         </div>
       )}

@@ -4,12 +4,12 @@ import { Link, Navigate } from 'react-router-dom';
 import { getErrorMessage } from '../api/client';
 import {
   getPublicStats,
-  listPublicBooks,
+  listGroupedPublicBooks,
   listPublicCategories,
   type PublicStats,
 } from '../api/public';
 import { AiSearchPanel, SearchModeToggle, type SearchMode } from '../components/AiBookSearch';
-import type { Book } from '../api/types';
+import type { Book, BookGroup } from '../api/types';
 import { bookAvailability } from '../api/types';
 import { homeForRole, useAuth } from '../context/AuthContext';
 import { listAnnouncements } from '../api/notifications';
@@ -69,12 +69,43 @@ function BookCard({ book }: { book: Book }) {
   );
 }
 
+/** Thẻ đầu sách gom nhóm: 1 thẻ / tựa + tác giả, bìa từ cuốn đầu tiên có bìa thật. */
+function GroupCard({ group }: { group: BookGroup }) {
+  const pseudo: Book = {
+    id: group.representativeId,
+    qrCode: '',
+    title: group.title,
+    author: group.author,
+    category: group.category,
+    publisher: group.publisher,
+    publishYear: group.publishYear,
+    status: group.availableCopies > 0 ? 'available' : 'borrowed',
+    coverUrl: group.coverUrl,
+  };
+  return (
+    <Link to={`/sach/${group.representativeId}`} className="landing-book-card">
+      <div className="landing-book-cover">
+        <BookImage book={pseudo} className="landing-book-cover-svg" />
+        <span className={`badge ${group.availableCopies > 0 ? 'badge-green' : 'badge-gray'} landing-book-badge`}>
+          {group.availableCopies > 0 ? `Còn ${group.availableCopies} cuốn` : 'Hết sách'}
+        </span>
+      </div>
+      <div className="landing-book-body">
+        <h3 className="landing-book-title">{group.title}</h3>
+        <p className="landing-book-meta">{group.author || 'Không rõ tác giả'}</p>
+        {group.category && <p className="landing-book-cat">{group.category}</p>}
+        <p className="landing-book-meta">Tổng {group.totalCopies} bản</p>
+      </div>
+    </Link>
+  );
+}
+
 /** Landing page public: giới thiệu + tra cứu sách không cần đăng nhập. */
 export function Landing() {
   const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<PublicStats | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
-  const [books, setBooks] = useState<Book[]>([]);
+  const [groups, setGroups] = useState<BookGroup[]>([]);
   const [total, setTotal] = useState(0);
   const [query, setQuery] = useState({ keyword: '', category: '', page: 1 });
   const [keywordInput, setKeywordInput] = useState('');
@@ -112,14 +143,14 @@ export function Landing() {
     setError('');
     (async () => {
       try {
-        const res = await listPublicBooks({
+        const res = await listGroupedPublicBooks({
           keyword: query.keyword || undefined,
           category: query.category || undefined,
           page: query.page,
           limit: PAGE_SIZE,
         });
         if (!alive) return;
-        setBooks(res.data);
+        setGroups(res.data);
         setTotal(res.total);
       } catch (err) {
         if (alive) setError(getErrorMessage(err, 'Không tải được danh sách sách.'));
@@ -167,7 +198,7 @@ export function Landing() {
       <header className="landing-header">
         <Link to="/" className="landing-brand">
           <Icon name="library" size={26} />
-          <span>Thư viện Mini</span>
+          <span>Thư viện Đại học</span>
         </Link>
         <nav className="landing-nav">
           <Link to="/login" className="btn btn-ghost">
@@ -194,7 +225,7 @@ export function Landing() {
           <h1>Thư viện trong tầm tay</h1>
           <p className="landing-hero-desc">
             Tra cứu kho sách, đặt trước online và theo dõi phiếu mượn — mọi thứ gói gọn
-            trong một ứng dụng quản lý thư viện mini.
+            trong một ứng dụng quản lý thư viện đại học.
           </p>
           <form className="landing-search" onSubmit={onSearchSubmit}>
             <Icon name="search" size={20} className="landing-search-icon" />
@@ -296,7 +327,7 @@ export function Landing() {
         {error && <div className="alert alert-error">{error}</div>}
         {loading ? (
           <Skeleton variant="book" count={8} />
-        ) : books.length === 0 ? (
+        ) : groups.length === 0 ? (
           <EmptyState
             icon="search"
             title="Không tìm thấy sách nào phù hợp."
@@ -304,8 +335,8 @@ export function Landing() {
           />
         ) : (
           <div className="landing-book-grid">
-            {books.map((b) => (
-              <BookCard key={b.id} book={b} />
+            {groups.map((g) => (
+              <GroupCard key={g.representativeId} group={g} />
             ))}
           </div>
         )}
@@ -344,7 +375,7 @@ export function Landing() {
 
       <footer className="landing-footer">
         <p>
-          <strong>Thư viện Mini</strong> — đồ án CDIO 4, ngành Công nghệ phần mềm.
+          <strong>Thư viện Đại học</strong> — đồ án CDIO 4, ngành Công nghệ phần mềm.
         </p>
         <p className="muted">Mượn – trả bằng QR, nhắc hạn tự động, đặt trước online 48h.</p>
       </footer>

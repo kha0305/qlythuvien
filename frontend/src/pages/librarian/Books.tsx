@@ -25,6 +25,7 @@ import {
 } from '../../api/categories';
 import type { Category } from '../../api/types';
 import type { Book } from '../../api/types';
+import { loadRecent, loadRecentNumbers, pushRecent, pushRecentNumber, RECENT_KEYS } from '../../utils/recent';
 import { Skeleton } from '../../components/Skeleton';
 import { EmptyState } from '../../components/EmptyState';
 import { ConfirmDialog, Modal } from '../../components/Modal';
@@ -81,6 +82,13 @@ export function Books() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Book | null>(null);
   const [form, setForm] = useState<BookInput>(emptyForm);
+  // Nhớ gần đây (localStorage): chỉ cập nhật khi Thêm sách thành công.
+  const [recentPublishers, setRecentPublishers] = useState<string[]>(() => loadRecent(RECENT_KEYS.publishers));
+  const [recentAuthors, setRecentAuthors] = useState<string[]>(() => loadRecent(RECENT_KEYS.authors));
+  const [recentYears, setRecentYears] = useState<number[]>(() => loadRecentNumbers(RECENT_KEYS.years));
+  // Dropdown NXB: false = chọn từ danh sách, true = đang gõ NXB mới.
+  const [publisherCustom, setPublisherCustom] = useState(false);
+  const [customPublisher, setCustomPublisher] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [quickCatOpen, setQuickCatOpen] = useState(false);
   const [quickCatName, setQuickCatName] = useState('');
@@ -212,7 +220,18 @@ export function Books() {
 
   const openAdd = () => {
     setEditing(null);
-    setForm(emptyForm);
+    // Thêm sách: tự điền sẵn thể loại + NXB của cuốn vừa thêm gần nhất
+    // (thể loại chỉ điền khi vẫn còn trong danh mục). Tiêu đề để trống,
+    // tác giả + năm XB chỉ gợi ý để bấm chọn (không tự điền).
+    const recentCat = loadRecent(RECENT_KEYS.categories)[0] ?? '';
+    const recentPub = loadRecent(RECENT_KEYS.publishers)[0] ?? '';
+    setForm({
+      ...emptyForm,
+      category: categories.some((c) => c.name === recentCat) ? recentCat : '',
+      publisher: recentPub,
+    });
+    setPublisherCustom(false);
+    setCustomPublisher('');
     setQuantity(1);
     setFormError('');
     setCoverFile(null);
@@ -233,6 +252,15 @@ export function Books() {
     });
     setFormError('');
     setCoverFile(null);
+    // Sửa giữ nguyên giá trị sách đang sửa, không bị recent ghi đè.
+    // NXB không có trong danh sách thì mở sẵn ô gõ tay để khỏi mất giá trị.
+    if (b.publisher && !publishers.includes(b.publisher)) {
+      setPublisherCustom(true);
+      setCustomPublisher(b.publisher);
+    } else {
+      setPublisherCustom(false);
+      setCustomPublisher('');
+    }
     revokeCoverObjectUrl();
     // Sửa mà không chọn file mới -> giữ ảnh cũ.
     setCoverPreview(fileUrl(b.coverUrl) ?? null);
@@ -321,9 +349,21 @@ export function Books() {
         }
       } else {
         const created = await createBook(payload, quantity);
-        // Upload ảnh bìa cho bản đầu tiên (các bản copy dùng chung ảnh, khi cần thì sửa từng bản).
+        // Upload ảnh bìa cho bản đầu tiên; backend tự điền bìa cho các bản
+        // cùng tựa chưa có bìa (mỗi bản 1 file riêng).
         if (coverFile && created.length > 0) {
           await uploadBookCover(created[0].id, coverFile);
+        }
+        // Nhớ gần đây: chỉ cập nhật khi Thêm thành công (Sửa không tính).
+        // NXB mới lưu xong tự vào danh sách cho lần sau.
+        setRecentPublishers(pushRecent(RECENT_KEYS.publishers, payload.publisher));
+        pushRecent(RECENT_KEYS.categories, payload.category);
+        setRecentAuthors(pushRecent(RECENT_KEYS.authors, payload.author));
+        setRecentYears(pushRecentNumber(RECENT_KEYS.years, payload.publishYear));
+        try {
+          setPublishers(await listPublishers());
+        } catch {
+          // danh sách NXB tải lại thất bại thì lần sau vẫn có recent
         }
         if (created.length > 1) {
           setNotice(`Đã thêm ${created.length} bản sách (mỗi bản 1 mã riêng).`);
@@ -390,7 +430,7 @@ export function Books() {
     }
   };
 
-  /** Lấy bìa tự động cho sách chưa có ảnh, 10 cuốn/đợt (bấm tiếp cho đến khi hết). */
+  /** Lấy bìa tự động cho sách chưa có ảnh, 10 tựa/đợt, mỗi tựa điền cho tất cả cuốn cùng tựa (bấm tiếp cho đến khi hết). */
   const doFetchMissing = async () => {
     setFetchingMissing(true);
     setCoverReport(null);
@@ -665,6 +705,16 @@ export function Books() {
             <label className="field">
               <span>Tác giả</span>
               <input className="input" value={form.author ?? ''} onChange={(e) => setForm({ ...form, author: e.target.value })} />
+              {!editing && recentAuthors.length > 0 && (
+                <p className="muted">
+                  Gần đây:{' '}
+                  {recentAuthors.map((a) => (
+                    <button key={a} type="button" className="btn btn-ghost btn-sm" onClick={() => setForm({ ...form, author: a })}>
+                      {a}
+                    </button>
+                  ))}
+                </p>
+              )}
             </label>
             <label className="field">
               <span>Thể loại</span>
@@ -721,7 +771,49 @@ export function Books() {
           <div className="form-row">
             <label className="field">
               <span>Nhà xuất bản</span>
-              <input className="input" value={form.publisher ?? ''} onChange={(e) => setForm({ ...form, publisher: e.target.value })} />
+              <select
+                className="input"
+                value={publisherCustom ? '__custom' : (form.publisher ?? '')}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === '__custom') {
+                    setPublisherCustom(true);
+                    setCustomPublisher(form.publisher ?? '');
+                  } else {
+                    setPublisherCustom(false);
+                    setCustomPublisher('');
+                    setForm({ ...form, publisher: v });
+                  }
+                }}
+              >
+                <option value="">-- Chọn NXB --</option>
+                {recentPublishers.length > 0 && (
+                  <optgroup label="Gần đây">
+                    {recentPublishers.map((nxb) => (
+                      <option key={`recent-${nxb}`} value={nxb}>{nxb}</option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label="Tất cả NXB">
+                  {publishers
+                    .filter((nxb) => !recentPublishers.includes(nxb))
+                    .map((nxb) => (
+                      <option key={nxb} value={nxb}>{nxb}</option>
+                    ))}
+                </optgroup>
+                <option value="__custom">Nhập nhà xuất bản mới...</option>
+              </select>
+              {publisherCustom && (
+                <input
+                  className="input"
+                  placeholder="Tên nhà xuất bản mới..."
+                  value={customPublisher}
+                  onChange={(e) => {
+                    setCustomPublisher(e.target.value);
+                    setForm({ ...form, publisher: e.target.value });
+                  }}
+                />
+              )}
             </label>
             <label className="field">
               <span>Năm xuất bản</span>
@@ -733,6 +825,16 @@ export function Books() {
                   setForm({ ...form, publishYear: e.target.value ? Number(e.target.value) : null })
                 }
               />
+              {!editing && recentYears.length > 0 && (
+                <p className="muted">
+                  Gần đây:{' '}
+                  {recentYears.map((y) => (
+                    <button key={y} type="button" className="btn btn-ghost btn-sm" onClick={() => setForm({ ...form, publishYear: y })}>
+                      {y}
+                    </button>
+                  ))}
+                </p>
+              )}
             </label>
           </div>
           <label className="field">

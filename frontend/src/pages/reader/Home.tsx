@@ -2,11 +2,10 @@ import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { getErrorMessage } from '../../api/client';
-import { listBooks } from '../../api/books';
-import { listPublicCategories } from '../../api/public';
+import { listGroupedPublicBooks, listPublicCategories } from '../../api/public';
 import { reserveBook } from '../../api/reservations';
 import { getSettings } from '../../api/settings';
-import type { Book } from '../../api/types';
+import type { Book, BookGroup } from '../../api/types';
 import { bookAvailability } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 import { Pagination } from '../../components/Pagination';
@@ -22,7 +21,7 @@ const PAGE_SIZE = 12;
  *  tìm bằng mô tả AI (UC16), thẻ sách + đặt trước (UC11). */
 export function ReaderHome() {
   const { user } = useAuth();
-  const [books, setBooks] = useState<Book[]>([]);
+  const [groups, setGroups] = useState<BookGroup[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [keyword, setKeyword] = useState('');
@@ -41,13 +40,13 @@ export function ReaderHome() {
     setLoading(true);
     setError('');
     try {
-      const res = await listBooks({
+      const res = await listGroupedPublicBooks({
         keyword: kw || undefined,
         category: cat || undefined,
         page: p,
-        pageSize: PAGE_SIZE,
+        limit: PAGE_SIZE,
       });
-      setBooks(res.data);
+      setGroups(res.data);
       setTotal(res.total);
     } catch (err) {
       setError(getErrorMessage(err, 'Không tải được danh sách sách.'));
@@ -130,6 +129,54 @@ export function ReaderHome() {
               onClick={() => handleReserve(b.id)}
             >
               {reservingId === b.id ? 'Đang đặt...' : 'Đặt trước'}
+            </button>
+          ) : (
+            <span className="muted">Không đặt được</span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderGroupCard = (g: BookGroup) => {
+    // Đặt trước bản còn mượn được đầu tiên (còn + chưa có đặt trước hiệu lực).
+    const firstFree = g.copies.find((c) => c.status === 'available' && !c.hasActiveReservation);
+    const pseudo: Book = {
+      id: g.representativeId,
+      qrCode: '',
+      title: g.title,
+      author: g.author,
+      category: g.category,
+      publisher: g.publisher,
+      publishYear: g.publishYear,
+      status: g.availableCopies > 0 ? 'available' : 'borrowed',
+      coverUrl: g.coverUrl,
+    };
+    return (
+      <div className="reader-book-card">
+        <Link to={`/reader/books/${g.representativeId}`} className="reader-book-main">
+          <div className="landing-book-cover">
+            <BookImage book={pseudo} className="landing-book-cover-svg" />
+            <span className={`badge ${g.availableCopies > 0 ? 'badge-green' : 'badge-gray'} landing-book-badge`}>
+              {g.availableCopies > 0 ? `Còn ${g.availableCopies} cuốn` : 'Hết sách'}
+            </span>
+          </div>
+          <div className="landing-book-body">
+            <h3 className="landing-book-title">{g.title}</h3>
+            <p className="landing-book-meta">{g.author || 'Không rõ tác giả'}</p>
+            {g.category && <p className="landing-book-cat">{g.category}</p>}
+            <p className="landing-book-meta">Tổng {g.totalCopies} bản</p>
+          </div>
+        </Link>
+        <div className="reader-book-foot">
+          {firstFree ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              disabled={reservingId === firstFree.id}
+              onClick={() => handleReserve(firstFree.id)}
+            >
+              {reservingId === firstFree.id ? 'Đang đặt...' : 'Đặt trước'}
             </button>
           ) : (
             <span className="muted">Không đặt được</span>
@@ -235,7 +282,7 @@ export function ReaderHome() {
           <>
             {loading ? (
               <Skeleton variant="book" count={8} />
-            ) : books.length === 0 ? (
+            ) : groups.length === 0 ? (
               <EmptyState
                 icon="search"
                 title="Không tìm thấy sách nào phù hợp."
@@ -243,8 +290,8 @@ export function ReaderHome() {
               />
             ) : (
               <div className="reader-book-grid">
-                {books.map((b) => (
-                  <Fragment key={b.id}>{renderCard(b)}</Fragment>
+                {groups.map((g) => (
+                  <Fragment key={g.representativeId}>{renderGroupCard(g)}</Fragment>
                 ))}
               </div>
             )}

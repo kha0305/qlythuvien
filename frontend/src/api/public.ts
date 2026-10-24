@@ -1,5 +1,5 @@
 import { api } from './client';
-import { normalizeBook, normalizePage, unwrapData, type Book, type PageResult } from './types';
+import { normalizeBook, normalizePage, unwrapData, type Book, type BookGroup, type PageResult } from './types';
 
 export interface PublicStats {
   totalBooks: number;
@@ -16,6 +16,33 @@ export async function listPublicBooks(params: {
 }): Promise<PageResult<Book>> {
   const { data } = await api.get('/public/books', { params });
   return normalizePage(data, normalizeBook);
+}
+
+/** Trang chủ gom đầu sách: 1 thẻ / tựa + tác giả, kèm từng cuốn vật lý. */
+export async function listGroupedPublicBooks(params: {
+  keyword?: string;
+  category?: string;
+  page?: number;
+  limit?: number;
+}): Promise<PageResult<BookGroup>> {
+  const { data } = await api.get('/public/books/grouped', { params });
+  const r = (data ?? {}) as Record<string, unknown>;
+  const list = (Array.isArray(r.data) ? r.data : []) as Record<string, unknown>[];
+  return {
+    data: list.map((g) => ({
+      title: String(g.title ?? ''),
+      author: (g.author as string | null) ?? null,
+      category: (g.category as string | null) ?? null,
+      publisher: (g.publisher as string | null) ?? null,
+      publishYear: g.publishYear === null || g.publishYear === undefined ? null : Number(g.publishYear),
+      coverUrl: (g.coverUrl as string | null) ?? null,
+      totalCopies: Number(g.totalCopies ?? 0),
+      availableCopies: Number(g.availableCopies ?? 0),
+      representativeId: Number(g.representativeId ?? 0),
+      copies: Array.isArray(g.copies) ? (g.copies as unknown[]).map((c) => normalizeBook(c)) : [],
+    })),
+    total: Number(r.total ?? list.length),
+  };
 }
 
 export interface AiSearchResult {

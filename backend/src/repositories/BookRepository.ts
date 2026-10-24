@@ -125,6 +125,86 @@ export class BookRepository {
     return rows.map(mapRow);
   }
 
+  /**
+   * Gom đầu sách (title + author, trim 2 đầu; author NULL coi như rỗng).
+   * Giữ nguyên phân biệt bản tiếng Anh và bản tiếng Việt vì tựa khác nhau.
+   * Bìa đại diện: cuốn đầu tiên (id tăng dần) trong nhóm đã có bìa thật.
+   * Nhóm xếp theo cuốn mới nhất trong nhóm (MAX(id) giảm dần) giống thứ tự
+   * "mới thêm nhất" của danh sách cũ.
+   */
+  async listGrouped(
+    keyword: string | undefined,
+    category: string | undefined,
+    page: number,
+    limit: number,
+    conn: DbConn = pool,
+  ): Promise<{
+    groups: { title: string; author: string | null; total: number; available: number; representativeId: number; coverUrl: string | null }[];
+    total: number;
+  }> {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    if (keyword) {
+      conditions.push('(title LIKE ? OR author LIKE ? OR category LIKE ?)');
+      const like = `%${keyword}%`;
+      params.push(like, like, like);
+    }
+    if (category) {
+      conditions.push('category = ?');
+      params.push(category);
+    }
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const [countRows] = await conn.query<RowDataPacket[]>(
+      `SELECT COUNT(*) AS total FROM (SELECT 1 FROM books ${where} GROUP BY TRIM(title), IFNULL(TRIM(author), '')) AS g`,
+      params,
+    );
+    const total = Number(countRows[0].total);
+    const offset = (page - 1) * limit;
+    const [rows] = await conn.query<RowDataPacket[]>(
+      `SELECT TRIM(title) AS gtitle, IFNULL(TRIM(author), '') AS gauthor,
+              COUNT(*) AS total, SUM(status = 'available') AS available,
+              COALESCE(MIN(CASE WHEN status = 'available' THEN id END), MIN(id)) AS repId,
+              (SELECT b2.cover_url FROM books b2
+               WHERE TRIM(b2.title) = TRIM(books.title)
+                 AND IFNULL(TRIM(b2.author), '') = IFNULL(TRIM(books.author), '')
+                 AND b2.cover_url IS NOT NULL AND b2.cover_url <> ''
+               ORDER BY b2.id ASC LIMIT 1) AS coverUrl,
+              MAX(id) AS maxId
+       FROM books ${where}
+       GROUP BY TRIM(title), IFNULL(TRIM(author), '')
+       ORDER BY maxId DESC LIMIT ? OFFSET ?`,
+      [...params, limit, offset],
+    );
+    return {
+      groups: rows.map((r) => ({
+        title: String(r.gtitle),
+        author: String(r.gauthor) === '' ? null : String(r.gauthor),
+        total: Number(r.total),
+        available: Number(r.available ?? 0),
+        representativeId: Number(r.repId),
+        coverUrl: (r.coverUrl as string | null) ?? null,
+      })),
+      total,
+    };
+  }
+
+  /** Tất cả cuốn cùng đầu sách (title + author, trim, author NULL-safe), id tăng dần. */
+  async findByTitleAuthor(title: string, author: string | null, conn: DbConn = pool): Promise<Book[]> {
+    const [rows] = await conn.query<RowDataPacket[]>(
+      `SELECT * FROM books WHERE TRIM(title) = ? AND IFNULL(TRIM(author), '') = IFNULL(TRIM(?), '') ORDER BY id ASC`,
+      [title.trim(), author?.trim() ?? ''],
+    );
+    return rows.map(mapRow);
+  }
+
+  /** Tất cả sách chưa có ảnh bìa, id tăng dần (dùng cho batch lấy bìa gom theo tựa). */
+  async findAllWithoutCover(conn: DbConn = pool): Promise<Book[]> {
+    const [rows] = await conn.query<RowDataPacket[]>(
+      `SELECT * FROM books WHERE cover_url IS NULL OR cover_url = '' ORDER BY id ASC`,
+    );
+    return rows.map(mapRow);
+  }
+
   /** Đếm số bản của 1 đầu sách (group theo title + author, author NULL-safe). */
   async countCopies(
     title: string,

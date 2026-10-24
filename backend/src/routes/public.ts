@@ -7,6 +7,7 @@ const controller = new PublicController();
 
 // API public cho landing page: không gắn middleware auth.
 router.get('/books', asyncHandler(controller.listBooks));
+router.get('/books/grouped', asyncHandler(controller.listGroupedBooks));
 // Route cụ thể phải đặt trước route :id.
 router.post('/books/ai-search', asyncHandler(controller.aiSearch));
 router.get('/books/:id', asyncHandler(controller.getBookById));

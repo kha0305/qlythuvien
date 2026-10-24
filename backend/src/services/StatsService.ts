@@ -45,7 +45,7 @@ export class StatsService {
     const now = new Date();
 
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'Thư viện Mini';
+    wb.creator = 'Thư viện Đại học';
 
     // Sheet 1: chi tiết mượn/trả.
     const ws1 = wb.addWorksheet('Mượn trả');

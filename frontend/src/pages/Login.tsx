@@ -41,7 +41,7 @@ export function Login() {
     <div className="auth-page">
       <div className="auth-card">
         <Link to="/" className="auth-back">← Trở lại trang chủ</Link>
-        <h1 className="auth-title">Thư viện Mini</h1>
+        <h1 className="auth-title">Thư viện Đại học</h1>
         <p className="auth-subtitle">Đăng nhập để quản lý mượn, trả sách</p>
 
         {searchParams.get('phien') === 'hethan' && (

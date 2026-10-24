@@ -52,10 +52,10 @@ export class EmailAccountService {
     await ensureEmailSchema();
     const raw = await this.createToken(user.id, 'verify_email', VERIFY_TOKEN_TTL_MS);
     const url = `${config.mail.appBaseUrl}/verify-email?token=${raw}`;
-    const title = 'Xác thực email của bạn — Thư viện Mini';
+    const title = 'Xác thực email của bạn — Thư viện Đại học';
     await this.emailService.send({
       to: user.email,
-      subject: `[Thư viện Mini] ${title}`,
+      subject: `[Thư viện Đại học] ${title}`,
       text: `Xin chào ${user.fullName},\nVui lòng mở liên kết sau để xác thực email cho tài khoản "${user.username}" (hết hạn sau 24 giờ):\n${url}\nNếu bạn không đăng ký tài khoản này, hãy bỏ qua email.${emailFooterText()}`,
       html: wrapEmailHtml(
         title,
@@ -122,10 +122,10 @@ export class EmailAccountService {
     if (last && Date.now() - last.getTime() < RESEND_COOLDOWN_MS) return;
     const raw = await this.createToken(user.id, 'reset_password', RESET_TOKEN_TTL_MS);
     const url = `${config.mail.appBaseUrl}/reset-password?token=${raw}`;
-    const title = 'Đặt lại mật khẩu — Thư viện Mini';
+    const title = 'Đặt lại mật khẩu — Thư viện Đại học';
     await this.emailService.send({
       to: email,
-      subject: `[Thư viện Mini] ${title}`,
+      subject: `[Thư viện Đại học] ${title}`,
       text: `Xin chào ${user.fullName},\nBạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu cho tài khoản "${user.username}". Mở liên kết sau và đặt mật khẩu mới (hết hạn sau 30 phút, chỉ dùng được 1 lần):\n${url}\nNếu không phải bạn, hãy bỏ qua email này — mật khẩu của bạn không thay đổi.${emailFooterText()}`,
       html: wrapEmailHtml(
         title,

@@ -49,6 +49,33 @@ export class PublicController {
     );
   }
 
+  // GET /api/public/books/grouped — đầu sách gom nhóm (1 thẻ / tựa + tác giả),
+  // kèm danh sách từng cuốn vật lý trong nhóm để mượn/đặt trước/quét QR như cũ.
+  listGroupedBooks = async (req: Request, res: Response): Promise<void> => {
+    const { page, limit } = parsePaging(req.query);
+    const { groups, total } = await this.bookService.listGrouped(
+      req.query.keyword as string | undefined,
+      req.query.category as string | undefined,
+      page,
+      limit,
+    );
+    const data = await Promise.all(
+      groups.map(async (g) => ({
+        title: g.title,
+        author: g.author,
+        category: g.category,
+        publisher: g.publisher,
+        publishYear: g.publishYear,
+        coverUrl: g.coverUrl,
+        totalCopies: g.total,
+        availableCopies: g.available,
+        representativeId: g.representativeId,
+        copies: await this.withReservationFlag(g.copies),
+      })),
+    );
+    res.json({ data, page, limit, total });
+  };
+
   // GET /api/public/books?keyword=&category=&page=&limit=
   listBooks = async (req: Request, res: Response): Promise<void> => {
     const { page, limit } = parsePaging(req.query);
@@ -90,7 +117,8 @@ export class PublicController {
     const book = await this.bookService.findById(Number(req.params.id));
     const dto = (await this.withReservationFlag([book]))[0];
     const copies = await this.bookService.countCopies(book.title, book.author ?? null);
-    res.json({ data: { ...dto, totalCopies: copies.total, availableCopies: copies.available } });
+    const copyList = await this.withReservationFlag(await this.bookService.listCopies(book.title, book.author ?? null));
+    res.json({ data: { ...dto, totalCopies: copies.total, availableCopies: copies.available, copies: copyList } });
   };
 
   // GET /api/public/announcements — thông báo chung có cờ hiện ở landing (không cần đăng nhập).

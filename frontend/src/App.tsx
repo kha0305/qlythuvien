@@ -84,14 +84,14 @@ const PAGE_TITLES: Record<string, string> = {
   '/notifications': 'Thông báo',
 };
 
-// Cập nhật tiêu đề tab trình duyệt theo trang đang mở: "<Trang> - Thư Viện Mini"
+// Cập nhật tiêu đề tab trình duyệt theo trang đang mở: "<Trang> - Thư viện Đại học"
 function PageTitle() {
   const { pathname } = useLocation();
   useEffect(() => {
     // Trang chi tiết sách tự đặt tiêu đề theo tên sách khi đã tải xong dữ liệu
     if (pathname.startsWith('/sach/') || pathname.startsWith('/reader/books/')) return;
     const name = PAGE_TITLES[pathname];
-    document.title = name ? `${name} - Thư Viện Mini` : 'Thư Viện Mini';
+    document.title = name ? `${name} - Thư viện Đại học` : 'Thư viện Đại học';
   }, [pathname]);
   return null;
 }

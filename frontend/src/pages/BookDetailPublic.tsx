@@ -14,7 +14,7 @@ export function BookDetailPublic() {
   const [book, setBook] = useState<Book | null>(null);
 
   useEffect(() => {
-    if (book) document.title = `${book.title} - Thư Viện Mini`;
+    if (book) document.title = `${book.title} - Thư viện Đại học`;
   }, [book]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,7 +47,7 @@ export function BookDetailPublic() {
       <header className="landing-header">
         <Link to="/" className="landing-brand">
           <Icon name="library" size={26} />
-          <span>Thư viện Mini</span>
+          <span>Thư viện Đại học</span>
         </Link>
         <nav className="landing-nav">
           <Link to="/login" className="btn btn-ghost">
@@ -110,6 +110,28 @@ export function BookDetailPublic() {
                   Đăng nhập để mượn sách
                 </Link>
               </div>
+              {book.copies && book.copies.length > 1 && (
+                <div style={{ marginTop: 20 }}>
+                  <h3>Các cuốn cùng đầu sách</h3>
+                  <dl className="kv">
+                    {book.copies.map((c) => (
+                      <div key={c.id}>
+                        <dt>{c.bookCode || `Bản #${c.id}`}</dt>
+                        <dd>
+                          <Link to={`/sach/${c.id}`} className="link">
+                            {c.status === 'available'
+                              ? c.hasActiveReservation
+                                ? 'Đang giữ chỗ'
+                                : 'Còn sách'
+                              : 'Đang mượn'}
+                          </Link>
+                          {c.id === book.id ? ' (đang xem)' : ''}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -117,7 +139,7 @@ export function BookDetailPublic() {
 
       <footer className="landing-footer">
         <p>
-          <strong>Thư viện Mini</strong> — đồ án CDIO 4, ngành Công nghệ phần mềm.
+          <strong>Thư viện Đại học</strong> — đồ án CDIO 4, ngành Công nghệ phần mềm.
         </p>
       </footer>
     </div>

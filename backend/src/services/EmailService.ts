@@ -47,7 +47,7 @@ export class EmailService {
 /** Footer dạng text thuần, nối vào cuối trường text của mọi email hệ thống. */
 export function emailFooterText(): string {
   const base = config.mail.appBaseUrl;
-  return `\n\n—\nThư viện Mini — ${base}\nTrang chủ: ${base}/ · Đăng nhập: ${base}/login · Sách đang mượn: ${base}/my-books\nBạn nhận được email này vì địa chỉ của bạn được đăng ký tại Thư viện Mini.\n© 2026 Thư viện Mini. Email tự động — vui lòng không trả lời.`;
+  return `\n\n—\nThư viện Đại học — ${base}\nTrang chủ: ${base}/ · Đăng nhập: ${base}/login · Sách đang mượn: ${base}/my-books\nBạn nhận được email này vì địa chỉ của bạn được đăng ký tại Thư viện Đại học.\n© 2026 Thư viện Đại học. Email tự động — vui lòng không trả lời.`;
 }
 
 /** 1 dòng trong bảng thông tin của email (nhãn bên trái, giá trị đậm bên phải). */
@@ -90,14 +90,14 @@ export function wrapEmailHtml(
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(160deg,#1b5e20,#256d2a);background-color:#1b5e20;padding:36px 12px;font-family:'Segoe UI',Arial,sans-serif">
 <tr><td align="center">
 <table role="presentation" width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%">
-<tr><td style="color:#ffffff;font-size:20px;font-weight:800;letter-spacing:.3px;padding:0 6px 16px">THƯ VIỆN MINI</td><td style="font-size:12.5px;text-align:right;padding:0 6px 16px"><a href="${base}/" style="color:#eaf5ea;text-decoration:none">${host}</a></td></tr>
+<tr><td style="color:#ffffff;font-size:20px;font-weight:800;letter-spacing:.3px;padding:0 6px 16px">THƯ VIỆN ĐẠI HỌC</td><td style="font-size:12.5px;text-align:right;padding:0 6px 16px"><a href="${base}/" style="color:#eaf5ea;text-decoration:none">${host}</a></td></tr>
 </table>
 <table role="presentation" width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden">
 <tr><td style="height:6px;background:#f2b33d;font-size:0;line-height:6px">&nbsp;</td></tr>
 <tr><td style="padding:28px 34px 0;color:#263238"><div style="font-size:21px;font-weight:800;color:#1b5e20">${title}</div><div style="margin-top:14px;font-size:15px">${body}</div></td></tr>
 ${info}
 ${action}
-<tr><td style="background:#f6f8f6;padding:18px 34px;text-align:center;border-top:1px solid #e1e8e1"><div style="font-size:12.5px"><a href="${base}/" style="color:#1b5e20;font-weight:700;text-decoration:none">Trang chủ</a> &nbsp;·&nbsp; <a href="${base}/login" style="color:#1b5e20;font-weight:700;text-decoration:none">Đăng nhập</a> &nbsp;·&nbsp; <a href="${base}/my-books" style="color:#1b5e20;font-weight:700;text-decoration:none">Sách đang mượn</a></div><div style="font-size:12px;color:#8a978c;line-height:1.7;margin-top:8px">Bạn nhận được email này vì địa chỉ của bạn được đăng ký tại Thư viện Mini.<br>© 2026 Thư viện Mini · Email tự động, vui lòng không trả lời.</div></td></tr>
+<tr><td style="background:#f6f8f6;padding:18px 34px;text-align:center;border-top:1px solid #e1e8e1"><div style="font-size:12.5px"><a href="${base}/" style="color:#1b5e20;font-weight:700;text-decoration:none">Trang chủ</a> &nbsp;·&nbsp; <a href="${base}/login" style="color:#1b5e20;font-weight:700;text-decoration:none">Đăng nhập</a> &nbsp;·&nbsp; <a href="${base}/my-books" style="color:#1b5e20;font-weight:700;text-decoration:none">Sách đang mượn</a></div><div style="font-size:12px;color:#8a978c;line-height:1.7;margin-top:8px">Bạn nhận được email này vì địa chỉ của bạn được đăng ký tại Thư viện Đại học.<br>© 2026 Thư viện Đại học · Email tự động, vui lòng không trả lời.</div></td></tr>
 </table>
 </td></tr></table>
 </body></html>`;

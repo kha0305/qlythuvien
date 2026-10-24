@@ -13,7 +13,7 @@ const controller = new BookController();
 router.get('/', auth, asyncHandler(controller.list));
 // Route cụ thể phải đặt trước route :id.
 router.get('/qr/:qrCode', auth, checkRole('librarian'), asyncHandler(controller.getByQr));
-router.get('/publishers', auth, checkRole('librarian'), asyncHandler(controller.publishers));
+router.get('/publishers', auth, checkRole('librarian', 'admin'), asyncHandler(controller.publishers));
 // Tra cứu sách (Big Book -> iTunes fallback): route cụ thể phải đặt trước route :id
 // (nếu không "lookup" bị hiểu là id sách). Giữ alias /lookup-itunes cho frontend cũ.
 router.get('/lookup', auth, checkRole('librarian', 'admin'), asyncHandler(controller.lookupBooks));

@@ -39,7 +39,7 @@ export const config = {
   // Thiếu RESEND_API_KEY thì mọi tính năng email tự tắt, hệ thống vẫn chạy bình thường.
   mail: {
     resendApiKey: process.env.RESEND_API_KEY ?? '',
-    from: optional('MAIL_FROM', 'Thư Viện Mini <admin@thuvien.nanioe.me>'),
+    from: optional('MAIL_FROM', 'Thư viện Đại học <admin@thuvien.nanioe.me>'),
     apiUrl: optional('RESEND_API_URL', 'https://api.resend.com'),
     // Địa chỉ web công khai để dùng link trong email (đặt lại mật khẩu / xác thực).
     appBaseUrl: optional('APP_BASE_URL', 'http://localhost:5173').replace(/\/+$/, ''),

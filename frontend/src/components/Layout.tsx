@@ -118,7 +118,7 @@ export function Layout() {
           className="brand"
           onClick={() => navigate(homeForRole(user.role), { replace: true })}
         >
-          Thư viện Mini
+          Thư viện Đại học
         </button>
         <div className="topbar-user">
           <button

@@ -51,6 +51,26 @@ export interface Book {
   /** Số bản của đầu sách (chỉ có ở API public chi tiết) */
   totalCopies?: number;
   availableCopies?: number;
+  /** Từng cuốn vật lý cùng đầu sách (API chi tiết / grouped) */
+  copies?: Book[];
+}
+
+/**
+ * 1 đầu sách gom nhóm cho trang chủ (GET /api/public/books/grouped):
+ * 1 thẻ / tựa + tác giả, kèm danh sách từng cuốn vật lý để mượn/đặt trước/QR.
+ * coverUrl lấy từ cuốn đầu tiên trong nhóm đã có bìa thật (null nếu không có).
+ */
+export interface BookGroup {
+  title: string;
+  author?: string | null;
+  category?: string | null;
+  publisher?: string | null;
+  publishYear?: number | null;
+  coverUrl?: string | null;
+  totalCopies: number;
+  availableCopies: number;
+  representativeId: number;
+  copies: Book[];
 }
 
 /** Trạng thái hiển thị của 1 bản sách: còn / đang giữ chỗ (có đặt trước hiệu lực) / đang mượn. */
@@ -182,6 +202,7 @@ export function normalizeBook(raw: unknown): Book {
       const v = pick(r, 'availableCopies', 'available_copies');
       return v === undefined || v === null || v === '' ? undefined : toNum(v);
     })(),
+    copies: Array.isArray(r.copies) ? (r.copies as unknown[]).map((c) => normalizeBook(c)) : undefined,
   };
 }
 
