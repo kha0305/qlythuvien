@@ -267,19 +267,25 @@ export class BookService {
     return this.bookRepo.findByTitleAuthor(title, author);
   }
 
-  /** Danh sách đầu sách gom nhóm cho trang chủ (1 thẻ / tựa + tác giả). */
+  /**
+   * Danh sách đầu sách gom nhóm cho trang chủ (1 thẻ / tựa + tác giả).
+   * Bìa đại diện lấy từ copies đã tải sẵn (findByTitleAuthor xếp id tăng
+   * dần): cuốn đầu tiên có bìa thật, không lấy bằng subquery SQL vì
+   * ONLY_FULL_GROUP_BY sẽ lỗi như đã gặp live ngày 24/10.
+   */
   async listGrouped(keyword: string | undefined, category: string | undefined, page: number, limit: number) {
     const { groups, total } = await this.bookRepo.listGrouped(keyword, category, page, limit);
     const out = [];
     for (const g of groups) {
       const rep = await this.bookRepo.findById(g.representativeId);
       const copies = await this.bookRepo.findByTitleAuthor(g.title, g.author);
+      const firstCover = copies.find((c) => c.coverUrl != null && c.coverUrl !== '')?.coverUrl ?? null;
       out.push({
         ...g,
         category: rep?.category ?? null,
         publisher: rep?.publisher ?? null,
         publishYear: rep?.publishYear ?? null,
-        coverUrl: g.coverUrl ?? rep?.coverUrl ?? null,
+        coverUrl: firstCover ?? rep?.coverUrl ?? null,
         copies,
       });
     }

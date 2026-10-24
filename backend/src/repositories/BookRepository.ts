@@ -128,9 +128,12 @@ export class BookRepository {
   /**
    * Gom đầu sách (title + author, trim 2 đầu; author NULL coi như rỗng).
    * Giữ nguyên phân biệt bản tiếng Anh và bản tiếng Việt vì tựa khác nhau.
-   * Bìa đại diện: cuốn đầu tiên (id tăng dần) trong nhóm đã có bìa thật.
    * Nhóm xếp theo cuốn mới nhất trong nhóm (MAX(id) giảm dần) giống thứ tự
    * "mới thêm nhất" của danh sách cũ.
+   * Không lấy bìa bằng subquery tương quan trong câu GROUP BY này: MySQL
+   * ONLY_FULL_GROUP_BY từ chối vì books.title không phụ thuộc hàm
+   * TRIM(title). Bìa đại diện do BookService lấy từ copies đã tải sẵn
+   * (cuốn đầu tiên theo id tăng dần đã có bìa thật).
    */
   async listGrouped(
     keyword: string | undefined,
@@ -139,7 +142,7 @@ export class BookRepository {
     limit: number,
     conn: DbConn = pool,
   ): Promise<{
-    groups: { title: string; author: string | null; total: number; available: number; representativeId: number; coverUrl: string | null }[];
+    groups: { title: string; author: string | null; total: number; available: number; representativeId: number }[];
     total: number;
   }> {
     const conditions: string[] = [];
@@ -164,11 +167,6 @@ export class BookRepository {
       `SELECT TRIM(title) AS gtitle, IFNULL(TRIM(author), '') AS gauthor,
               COUNT(*) AS total, SUM(status = 'available') AS available,
               COALESCE(MIN(CASE WHEN status = 'available' THEN id END), MIN(id)) AS repId,
-              (SELECT b2.cover_url FROM books b2
-               WHERE TRIM(b2.title) = TRIM(books.title)
-                 AND IFNULL(TRIM(b2.author), '') = IFNULL(TRIM(books.author), '')
-                 AND b2.cover_url IS NOT NULL AND b2.cover_url <> ''
-               ORDER BY b2.id ASC LIMIT 1) AS coverUrl,
               MAX(id) AS maxId
        FROM books ${where}
        GROUP BY TRIM(title), IFNULL(TRIM(author), '')
@@ -182,7 +180,6 @@ export class BookRepository {
         total: Number(r.total),
         available: Number(r.available ?? 0),
         representativeId: Number(r.repId),
-        coverUrl: (r.coverUrl as string | null) ?? null,
       })),
       total,
     };
